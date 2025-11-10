@@ -1,24 +1,27 @@
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
+import os
 
 
 def load_raw_data(path: str) -> pd.DataFrame:
-    """Load the raw dataset."""
-    df = pd.read_csv(path)
-    return df
+    """Load raw dataset. If the file does NOT exist (Streamlit Cloud), skip ETL."""
+    if not os.path.exists(path):
+        print(f"⚠️ WARNING: Raw data file not found at {path}. Skipping ETL.")
+        return pd.DataFrame()  # return empty df so app doesn't crash
+
+    return pd.read_csv(path)
 
 
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     """Clean and preprocess raw data."""
+    if df.empty:
+        return df
 
-    # Remove duplicates
     df = df.drop_duplicates()
 
-    # Fill missing numeric values with mean
     numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
     df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
 
-    # Fill missing categorical values with mode
     cat_cols = df.select_dtypes(include=['object']).columns
     for col in cat_cols:
         df[col] = df[col].fillna(df[col].mode()[0])
@@ -28,6 +31,9 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
 
 def scale_features(df: pd.DataFrame) -> pd.DataFrame:
     """Scale numeric features."""
+    if df.empty:
+        return df
+
     numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
 
     scaler = StandardScaler()
@@ -38,29 +44,29 @@ def scale_features(df: pd.DataFrame) -> pd.DataFrame:
 
 def save_processed(df: pd.DataFrame, path: str):
     """Save processed dataset."""
+    if df.empty:
+        print("⚠️ No data to save (empty). Skipping save.")
+        return
+
     df.to_csv(path, index=False)
 
 
 def run_etl():
-    raw_path = "data/medicare_fraud.csv"
+    raw_path = "data/medicare_fraud.csv"   # ❌ Not available on Streamlit Cloud
     processed_path = "data/processed_fraud.csv"
 
-    print("Loading raw data...")
     df = load_raw_data(raw_path)
 
-    print("Cleaning data...")
+    if df.empty:
+        print("⚠️ ETL skipped because raw data does not exist.")
+        return
+
     df = clean_data(df)
-
-    print("Scaling features...")
     df = scale_features(df)
-
-    print("Saving processed data...")
     save_processed(df, processed_path)
 
     print("✅ ETL complete! File saved at:", processed_path)
 
 
-# ✅ SAFE EXIT — ETL only runs when executed directly, NOT when imported by Streamlit
 if __name__ == "__main__":
-    print("Running ETL locally...")
     run_etl()

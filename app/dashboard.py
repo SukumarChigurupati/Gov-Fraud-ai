@@ -11,22 +11,22 @@ from src.model import load_model_artifacts
 import os
 import sys
 
-# Root = one level above /app → the project folder
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-
-# Add root to Python path
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 # ============================================================
-# ✅ NOW IMPORT src MODULES (ONLY NOW — NOT BEFORE!)
+# ✅ NOW IMPORT src MODULES
 # ============================================================
 
 # ============================================================
-# ✅ Standard imports
+# ✅ Other imports
 # ============================================================
 
 
+# ============================================================
+# ✅ MAIN STREAMLIT APP
+# ============================================================
 def main():
     st.set_page_config(
         page_title="AI Fraud Detection",
@@ -35,63 +35,60 @@ def main():
     )
 
     st.title("🛡️ AI Fraud Detection Dashboard")
-    st.write("Upload a dataset to generate fraud scores and reports.")
+    st.write("Upload a dataset to generate fraud scores and investigation reports.")
 
     uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
     if not uploaded_file:
-        st.info("⬆️ Upload `processed_fraud.csv` to continue.")
+        st.info("⬆️ Upload `processed_fraud.csv` to start.")
         return
 
-    # ✅ Load CSV
+    # Load data
     df = pd.read_csv(uploaded_file)
     st.subheader("📄 Uploaded Data")
     st.dataframe(df.head())
 
-    # ✅ Load model + explainer
+    # Load model + SHAP
     model, explainer = load_model_artifacts()
 
-    # Remove labels if present
-    label_cols = ["fraud", "Outcome", "label", "target"]
-    df = df.drop(
-        columns=[c for c in label_cols if c in df.columns], errors="ignore")
+    # Remove labels
+    df = df.drop(columns=[c for c in ["fraud", "Outcome",
+                 "label", "target"] if c in df.columns])
 
     # Only numeric features
     X = df.select_dtypes(include=[np.number])
 
-    # ✅ Predictions
+    # Predictions
     fraud_prob = model.predict_proba(X)[:, 1]
     fraud_score = (fraud_prob * 100).round(2)
 
     df["fraud_prob"] = fraud_prob
     df["fraud_score"] = fraud_score
     df["risk_level"] = df["fraud_score"].apply(
-        lambda x: "High Risk" if x >= 70 else
-                  "Medium Risk" if x >= 40 else
-                  "Low Risk"
+        lambda x: "High Risk" if x >= 70 else (
+            "Medium Risk" if x >= 40 else "Low Risk"
+        )
     )
 
     st.subheader("✅ Results")
     st.dataframe(df)
 
-    # ✅ SHAP Feature Importance (Cloud Safe)
-    st.subheader("🔍 SHAP Feature Importance")
-
+    # SHAP Summary
+    st.subheader("🔍 SHAP Feature Importance (Safe Plot)")
     shap_values = explainer.shap_values(X)
 
     fig, ax = plt.subplots(figsize=(8, 4))
     shap.summary_plot(shap_values, X, plot_type="bar", show=False)
     st.pyplot(fig)
 
-    # ✅ Investigation Agent
+    # Investigation report
     st.subheader("🧠 AI Investigation Report")
-
     report = generate_investigation_summary(
         X.iloc[0].to_dict(),
         shap_values[0],
         float(df["fraud_prob"].iloc[0]),
         float(df["fraud_score"].iloc[0]),
-        df["risk_level"].iloc[0]
+        df["risk_level"].iloc[0],
     )
 
     st.text(report)

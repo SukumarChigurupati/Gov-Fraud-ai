@@ -60,5 +60,7 @@ def run_etl():
     print("✅ ETL complete! File saved at:", processed_path)
 
 
+# ✅ SAFE EXIT — ETL only runs when executed directly, NOT when imported by Streamlit
 if __name__ == "__main__":
+    print("Running ETL locally...")
     run_etl()

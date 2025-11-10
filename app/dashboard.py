@@ -1,19 +1,25 @@
 ﻿# =============== MUST BE FIRST ===============
+from src.agent import generate_investigation_summary
+from src.model import load_model_artifacts
 import matplotlib.pyplot as plt
 import shap
 import numpy as np
 import pandas as pd
 import streamlit as st
-from src.agent import generate_investigation_summary
-from src.model import load_model_artifacts
+import os
 import sys
-sys.path.insert(0, r"C:\Projects\gov-fraud-ai")
+
+# ✅ Auto-detect project root (works on Windows + Streamlit Cloud)
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT_DIR not in sys.path:
+    sys.path.insert(0, ROOT_DIR)
 # ============================================
 
 
 def main():
     st.set_page_config(page_title="AI Fraud Detection",
                        page_icon="🛡️", layout="wide")
+
     st.title("🛡️ AI Fraud Detection Dashboard")
     st.write("Upload a dataset to generate fraud scores and investigation reports.")
 
@@ -24,25 +30,27 @@ def main():
         return
 
     # ---------------------------
-    # Load data
+    # ✅ Load data
     # ---------------------------
     df = pd.read_csv(uploaded_file)
     st.subheader("📄 Uploaded Data")
     st.dataframe(df.head())
 
     # ---------------------------
-    # Load model & explainer
+    # ✅ Load model + SHAP
     # ---------------------------
     model, explainer = load_model_artifacts()
 
-    # Drop labels if present
+    # Remove labels if present
     drop_cols = ["fraud", "Outcome", "label", "target"]
     df = df.drop(columns=[c for c in drop_cols if c in df.columns])
 
-    # Only numeric
+    # Only numeric features for the model
     X = df.select_dtypes(include=[np.number]).copy()
 
-    # Predictions
+    # ---------------------------
+    # ✅ Predictions
+    # ---------------------------
     fraud_prob = model.predict_proba(X)[:, 1]
     fraud_score = (fraud_prob * 100).round(2)
 
@@ -57,26 +65,27 @@ def main():
     st.dataframe(df)
 
     # ---------------------------
-    # ✅ SHAP SUMMARY BAR PLOT (safe & fast)
+    # ✅ SHAP Bar Plot (Cloud Safe)
     # ---------------------------
     st.subheader("🔍 SHAP Feature Importance (Safe Plot)")
+
     shap_values = explainer.shap_values(X)
 
-    # Plot SHAP bar chart
     fig, ax = plt.subplots(figsize=(8, 4))
     shap.summary_plot(shap_values, X, plot_type="bar", show=False)
     st.pyplot(fig)
 
     # ---------------------------
-    # Investigation Agent
+    # ✅ Investigation Report
     # ---------------------------
     st.subheader("🧠 AI Investigation Report")
+
     report = generate_investigation_summary(
         X.iloc[0].to_dict(),
         shap_values[0],
         float(df["fraud_prob"].iloc[0]),
         float(df["fraud_score"].iloc[0]),
-        str(df["risk_level"].iloc[0])
+        str(df["risk_level"].iloc[0]),
     )
 
     st.text(report)

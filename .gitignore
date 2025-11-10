@@ -1,0 +1,21 @@
+# Virtual environment
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Model + data
+model.bin
+data/
+notebooks/
+*.csv
+*.xlsx
+*.pkl
+
+# Streamlit cache
+.streamlit/
+
+# Misc
+.DS_Store

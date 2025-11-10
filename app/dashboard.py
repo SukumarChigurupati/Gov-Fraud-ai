@@ -1,5 +1,5 @@
 ﻿# ============================================
-# ✅ MUST CONFIGURE IMPORT PATH FIRST
+# ✅ FIX IMPORT PATH FIRST (MUST BE FIRST)
 # ============================================
 import streamlit as st
 import pandas as pd
@@ -11,12 +11,15 @@ from src.agent import generate_investigation_summary
 import os
 import sys
 
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if ROOT_DIR not in sys.path:
-    sys.path.insert(0, ROOT_DIR)
+# /mount/src/gov-fraud-ai/app/dashboard.py
+# We must go UP ONE LEVEL → /mount/src/gov-fraud-ai
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 # ============================================
-# ✅ NOW IMPORT MODULES SAFELY
+# ✅ NOW WE CAN IMPORT src/*
 # ============================================
 
 

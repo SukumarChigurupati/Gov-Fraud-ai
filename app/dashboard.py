@@ -32,13 +32,16 @@ def main():
 
     # ------------------------------------
     # ✅ FILE UPLOAD
-    ------------------------------------
+    # ------------------------------------
     uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
     if not uploaded_file:
         st.info("⬆️ Upload `processed_fraud.csv` to continue.")
         return
 
+    # ------------------------------------
+    # ✅ LOAD DATA
+    # ------------------------------------
     df = pd.read_csv(uploaded_file)
     st.subheader("📄 Uploaded Data")
     st.dataframe(df.head())
@@ -48,7 +51,7 @@ def main():
     # ------------------------------------
     model, explainer = load_model_artifacts()
 
-    # Drop label columns if present
+    # Remove label columns if present
     drop_cols = ["fraud", "Outcome", "label", "target"]
     df = df.drop(columns=[c for c in drop_cols if c in df.columns])
 
@@ -56,7 +59,7 @@ def main():
     X = df.select_dtypes(include=[np.number]).copy()
 
     # ------------------------------------
-    # ✅ PREDICT
+    # ✅ PREDICTIONS
     # ------------------------------------
     fraud_prob = model.predict_proba(X)[:, 1]
     fraud_score = (fraud_prob * 100).round(2)
